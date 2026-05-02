@@ -1,0 +1,8 @@
+# Personal Wellspring Data
+/Wellspring/
+*.txt
+*.md
+.env
+
+# Mac System Files
+.DS_Store
