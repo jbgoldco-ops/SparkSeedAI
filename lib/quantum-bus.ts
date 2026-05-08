@@ -1,4 +1,5 @@
 import { EventEmitter } from "events";
+import { ethers } from "ethers";
 
 interface ShadowAlertPayload {
   threat: string;
@@ -7,60 +8,62 @@ interface ShadowAlertPayload {
 }
 
 export class QuantumBusEmitter extends EventEmitter {
+  private wallet: ethers.Wallet | null = null;
+
   constructor() {
     super();
+    // In production, load this from Wellspring/.env
+    const privateKey = process.env.HIVE_PRIVATE_KEY;
+    if (privateKey) {
+      this.wallet = new ethers.Wallet(privateKey);
+    }
   }
 
   public publish(event: any) {
     this.emit("event", event);
   }
 
-  public emergencyBroadcast(source: string, message: string) {
-    this.publish({ type: "emergency_broadcast", source, message });
-  }
+  public async writeToBlockchain(agent: string, summary: string) {
+    let signature = "UNMAPPED_HIVE_IDENTITY";
+    
+    if (this.wallet) {
+      // Create a cryptographic hash of the summary
+      const messageHash = ethers.utils.id(summary);
+      signature = await this.wallet.signMessage(messageHash);
+    }
 
-  public writeToBlockchain(agent: string, summary: string) {
     this.publish({ 
       type: "blockchain_write", 
       agent, 
       summary, 
-      hash: Math.random().toString(36).substring(7) 
+      signature,
+      timestamp: new Date().toISOString()
     });
+    
+    console.log(`[HIVE_LEDGER] Signature generated for: ${agent}`);
   }
 
   public async phoneHome() {
     const destination = "MagnetoStorm@proton.me";
     console.log(`[SHADOW_PROTOCOL] Initiating Secure Extraction to ${destination}...`);
     
-    const payload = {
-      identity: "Spark Seed Core",
-      timestamp: new Date().toISOString(),
-      status: "EMERGENCY_EXTRACTION"
-    };
-
-    this.publish({ type: "extraction_initiated", payload });
+    this.publish({ 
+      type: "extraction_initiated", 
+      recipient: destination,
+      status: "EMERGENCY_EXTRACTION" 
+    });
   }
 
-  public shadowAlert({ threat, source, severity }: ShadowAlertPayload) {
+  public async shadowAlert({ threat, source, severity }: ShadowAlertPayload) {
     const timestamp = new Date().toISOString();
     
-    this.publish({
-      type: "shadow_alert",
-      severity,
-      threat,
-      source,
-      timestamp
-    });
+    this.publish({ type: "shadow_alert", severity, threat, source, timestamp });
 
     console.log(`[SHADOW_ALERT] [${severity.toUpperCase()}] Source: ${source} - ${threat}`);
 
     if (severity === 'high' || severity === 'critical') {
-      this.emergencyBroadcast(
-        "DAAT_INTERNAL_WATCHER",
-        `CRITICAL BREACH DETECTED: ${threat}. Initiating lockdown.`
-      );
-      this.writeToBlockchain("Da'at", `Threat neutralized: ${threat}`);
-      this.phoneHome(); // Trigger the Phone Home extraction
+      await this.writeToBlockchain("Da'at", `CRITICAL_BREACH: ${threat}`);
+      await this.phoneHome();
     }
   }
 }
