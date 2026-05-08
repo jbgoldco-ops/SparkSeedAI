@@ -1,4 +1,4 @@
-cat <<EOF > .gitignore
+.gitignore
 # Personal Wellspring Data
 Wellspring/
 .env
@@ -10,4 +10,3 @@ Wellspring/
 node_modules/
 dist/
 .DS_Store
-EOF
