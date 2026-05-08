@@ -1,0 +1,11 @@
+# Personal Wellspring Data
+Wellspring/
+.env
+.env.local
+*.txt
+*.md
+
+# System & Build Files
+node_modules/
+dist/
+.DS_Store
