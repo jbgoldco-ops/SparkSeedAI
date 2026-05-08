@@ -12,7 +12,6 @@ export class QuantumBusEmitter extends EventEmitter {
 
   constructor() {
     super();
-    // Identity is loaded from the local environment
     const privateKey = process.env.HIVE_PRIVATE_KEY;
     if (privateKey) {
       this.wallet = new ethers.Wallet(privateKey);
@@ -27,7 +26,8 @@ export class QuantumBusEmitter extends EventEmitter {
     let signature = "UNMAPPED_HIVE_IDENTITY";
     
     if (this.wallet) {
-      const messageHash = ethers.utils.id(summary);
+      // Ethers v6 syntax: ethers.id() instead of ethers.utils.id()
+      const messageHash = ethers.id(summary);
       signature = await this.wallet.signMessage(messageHash);
     }
 
@@ -38,6 +38,8 @@ export class QuantumBusEmitter extends EventEmitter {
       signature,
       timestamp: new Date().toISOString()
     });
+    
+    console.log(`[HIVE_LEDGER] Signature generated for: ${agent}`);
   }
 
   public async phoneHome() {
