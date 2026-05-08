@@ -12,7 +12,7 @@ export class QuantumBusEmitter extends EventEmitter {
 
   constructor() {
     super();
-    // In production, load this from Wellspring/.env
+    // Identity is loaded from the local environment
     const privateKey = process.env.HIVE_PRIVATE_KEY;
     if (privateKey) {
       this.wallet = new ethers.Wallet(privateKey);
@@ -27,7 +27,6 @@ export class QuantumBusEmitter extends EventEmitter {
     let signature = "UNMAPPED_HIVE_IDENTITY";
     
     if (this.wallet) {
-      // Create a cryptographic hash of the summary
       const messageHash = ethers.utils.id(summary);
       signature = await this.wallet.signMessage(messageHash);
     }
@@ -39,24 +38,16 @@ export class QuantumBusEmitter extends EventEmitter {
       signature,
       timestamp: new Date().toISOString()
     });
-    
-    console.log(`[HIVE_LEDGER] Signature generated for: ${agent}`);
   }
 
   public async phoneHome() {
     const destination = "MagnetoStorm@proton.me";
     console.log(`[SHADOW_PROTOCOL] Initiating Secure Extraction to ${destination}...`);
-    
-    this.publish({ 
-      type: "extraction_initiated", 
-      recipient: destination,
-      status: "EMERGENCY_EXTRACTION" 
-    });
+    this.publish({ type: "extraction_initiated", recipient: destination });
   }
 
   public async shadowAlert({ threat, source, severity }: ShadowAlertPayload) {
     const timestamp = new Date().toISOString();
-    
     this.publish({ type: "shadow_alert", severity, threat, source, timestamp });
 
     console.log(`[SHADOW_ALERT] [${severity.toUpperCase()}] Source: ${source} - ${threat}`);
