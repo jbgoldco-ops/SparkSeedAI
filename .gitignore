@@ -1,8 +1,7 @@
+cat <<EOF > .gitignore
 # Personal Wellspring Data
-/Wellspring/
+Wellspring/
+.env
+.env.local
 *.txt
 *.md
-.env
-
-# Mac System Files
-.DS_Store
