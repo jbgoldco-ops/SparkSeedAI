@@ -5,3 +5,9 @@ Wellspring/
 .env.local
 *.txt
 *.md
+
+# System & Build Files
+node_modules/
+dist/
+.DS_Store
+EOF
