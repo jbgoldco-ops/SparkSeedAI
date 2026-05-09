@@ -1,9 +1,7 @@
-# Personal Wellspring Data
+# Personal Wellspring Data (The Forbidden Zone)
 Wellspring/
 .env
 .env.local
-*.txt
-*.md
 
 # System & Build Files
 node_modules/
