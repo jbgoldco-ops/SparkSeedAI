@@ -1,4 +1,8 @@
+import { exec } from 'child_process';
+import { promisify } from 'util';
 import { quantumBus } from './quantum-bus.js';
+
+const execAsync = promisify(exec);
 
 export class SignalRelay {
   // Digital & Cellular: NCS Priority Routing
@@ -6,9 +10,15 @@ export class SignalRelay {
     console.log(`[SIGNAL] [CELLULAR/TTY] Routing via NCS priority: ${message}`);
   }
 
-  // Local Frequency: Bluetooth & WLAN
+  // Local Frequency: Actual WLAN Scan (macOS)
   public static async localEnvironmentScan() {
-    console.log("[SIGNAL] [WLAN/BT] Monitoring local mesh for interference...");
+    try {
+      // Specifically targeting the en0 interface for Apple Silicon/Intel Macs
+      const { stdout } = await execAsync('networksetup -getairportnetwork en0');
+      console.log(`[SIGNAL] [WLAN] Current Mesh: ${stdout.trim()}`);
+    } catch (e) {
+      console.log("[SIGNAL] [WLAN] No wireless interface detected or interface is down.");
+    }
   }
 
   // Bio-Logic: Theta Wave Protocol (4–8 Hz)

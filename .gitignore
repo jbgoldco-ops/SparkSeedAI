@@ -1,9 +1,11 @@
-# Personal Wellspring Data
+# The WellSpring (Protected)
+WellSpring/
 Wellspring/
 .env
 .env.local
+*.txt
 
-# System & Build Files
+# System
 node_modules/
 dist/
 .DS_Store
