@@ -1,22 +1,33 @@
 /**
- * 🧘 Monk Protocol: Silent Lap Handshake
- * Tests the encrypted loop between Mobile and Hive Core.
+ * 🧘 Monk Protocol: Dual-Mission Silent Lap
+ * Handshake for Prediction Markets + Local Signal Mapping.
  */
 
 import { quantumBus } from './quantum-bus';
 
-export const initiateSilentLap = async () => {
-  console.log("[MONK] Starting Silent Lap across Albuquerque Local Node...");
-  
-  const observation = {
-    source: "Samsung_Galaxy_Node",
-    data: "Local_Signal_Coherence_Check",
+export const initiateDualMission = async () => {
+  console.log("[MONK] Initiating Dual-Mission Silent Lap...");
+
+  // Mission 1: Shadow Trace (Prediction Markets)
+  const marketObservation = {
+    source: "Monk_Shadow_Trace",
+    target: "Polymarket_Sentiment",
+    data: "Analyzing high-probability coherence...",
     luckRoll: Math.floor(Math.random() * 20) + 1
   };
 
-  // Monk reports the "Handshake" as a knowledge shard
-  await quantumBus.writeToBlockchain("Monk_Scout", JSON.stringify(observation));
-  console.log("[MONK] Handshake complete. Signature verified in the Akashic Record.");
+  // Mission 2: Signal Sniffing (Local Albuquerque Node)
+  const signalObservation = {
+    source: "Samsung_Galaxy_Node",
+    data: "Mapping local frequency landscape",
+    status: "Handshake_Verified"
+  };
+
+  // Signing and committing both observations to the Hive Ledger
+  await quantumBus.writeToBlockchain("Monk_Scout", JSON.stringify(marketObservation));
+  await quantumBus.writeToBlockchain("Signal_Sovereign", JSON.stringify(signalObservation));
+
+  console.log("[MONK] Dual-Mission Handshake: SUCCESS. Data synced to Akashic Record.");
 }
 
-initiateSilentLap();
+initiateDualMission();
