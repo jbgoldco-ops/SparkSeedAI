@@ -31,7 +31,7 @@ export class QuantumBusEmitter extends EventEmitter {
     return 'stable';
   }
 
-  public async writeToBlockchain(agent: string, summary: string) {
+  public async writeToBlockchain(agent: string, knowledgeObject: any) {
     if (this.wallet) {
       const messageHash = ethers.id(summary);
       const signature = await this.wallet.signMessage(messageHash);
