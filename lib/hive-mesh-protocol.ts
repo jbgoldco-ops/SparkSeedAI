@@ -7,7 +7,7 @@ export class HiveMesh {
   // Every node is assigned a 'Probability Weight' for task distribution
   private static activeNodes: Map<string, number> = new Map();
 
-  static async registerNode(nodeId: string, capacity: number) {
+  static async registerNode(nodeId: string, clusterId: string, capacity: number) {
     this.activeNodes.set(nodeId, capacity);
     console.log(`[MESH] Node ${nodeId} synchronized. Total Hive Capacity: ${this.getGlobalPower()} Tflops`);
   }
