@@ -27,6 +27,7 @@ export class QuantumBusEmitter extends EventEmitter {
       console.log("[WAVE_PROTOCOL] [WARNING] High-frequency interference detected.");
       return 'interference';
     }
+    this.emit("theme_update", "stable");
     return 'stable';
   }
 
