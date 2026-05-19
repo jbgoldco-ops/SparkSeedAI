@@ -3,19 +3,26 @@
 /**
  * Hive Pulse Check
  * Monitors the health and status of the Hive system
+ * Includes fallback endpoints and improved error handling
  */
 
 const https = require('https');
 
 // Configuration
 const HIVE_SAFE_KEY = process.env.HIVE_SAFE_KEY || '';
+
+// Primary and fallback Hive RPC endpoints
+// See: https://developers.hive.io/
 const PULSE_ENDPOINTS = [
   'https://api.hive.blog/api/v1/',
   'https://rpc.hive.blog/',
+  'https://anyx.io/', // Fallback RPC endpoint
+  'https://api.hivekings.com/', // Fallback API endpoint
 ];
 
 const TIMEOUT = 10000; // 10 seconds
 const RETRIES = 2;
+const MIN_HEALTHY_ENDPOINTS = 1; // Minimum healthy endpoints required for non-critical status
 
 /**
  * Make HTTPS request to check endpoint health
@@ -90,6 +97,11 @@ async function runPulseCheck() {
     keyValid: validateSafeKey(),
     endpoints: [],
     overallStatus: 'unknown',
+    summary: {
+      total: PULSE_ENDPOINTS.length,
+      healthy: 0,
+      unhealthy: 0,
+    },
   };
 
   let healthyCount = 0;
@@ -104,6 +116,7 @@ async function runPulseCheck() {
       
       if (result.status === 'healthy') {
         healthyCount++;
+        results.summary.healthy++;
       }
     } catch (error) {
       results.endpoints.push({
@@ -111,14 +124,15 @@ async function runPulseCheck() {
         status: 'unhealthy',
         error: error.message,
       });
+      results.summary.unhealthy++;
       console.error(`❌ ${endpoint}: ${error.message}`);
     }
   }
 
-  // Determine overall status
-  if (healthyCount === totalCount) {
+  // Determine overall status based on minimum healthy endpoints
+  if (healthyCount >= totalCount) {
     results.overallStatus = 'healthy';
-  } else if (healthyCount > 0) {
+  } else if (healthyCount >= MIN_HEALTHY_ENDPOINTS) {
     results.overallStatus = 'degraded';
   } else {
     results.overallStatus = 'critical';
@@ -141,10 +155,10 @@ async function runPulseCheck() {
     console.log('\n✨ Hive Pulse Check: PASSED\n');
     process.exit(0);
   } else if (results.overallStatus === 'degraded') {
-    console.warn('\n⚠️  Hive Pulse Check: DEGRADED (some endpoints down)\n');
-    process.exit(0); // Don't fail on degraded
+    console.warn(`\n⚠️  Hive Pulse Check: DEGRADED (${healthyCount}/${totalCount} endpoints healthy)\n`);
+    process.exit(0); // Don't fail on degraded - at least one endpoint is working
   } else {
-    console.error('\n💀 Hive Pulse Check: FAILED\n');
+    console.error(`\n💀 Hive Pulse Check: FAILED (${healthyCount}/${totalCount} endpoints healthy)\n`);
     process.exit(1);
   }
 }
