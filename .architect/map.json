@@ -1,0 +1,20 @@
+{
+  "name": "src",
+  "type": "directory",
+  "children": [
+    {
+      "name": "App.tsx",
+      "type": "file"
+    },
+    {
+      "name": "gates",
+      "type": "directory",
+      "children": [
+        {
+          "name": "orchestrator.ts",
+          "type": "file"
+        }
+      ]
+    }
+  ]
+}

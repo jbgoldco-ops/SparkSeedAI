@@ -1,4 +1,6 @@
-#!/usr/bin/env node
+require('dotenv').config(); 
+
+//#!/usr/bin/env node
 
 /**
  * Hive Pulse Check
