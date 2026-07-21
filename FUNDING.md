@@ -4,9 +4,9 @@ To support the expansion of the **JB Gold & Co. Incubators**, we require resourc
 
 ### 🏗️ Required Allocation (Large Entities)
 Per our [License](LICENSE.md), entities exceeding the $5M threshold must contribute fuel:
-* **Bitcoin (BTC):** `bc1qnp06qlcxeele8268dm9henwm00q9dwnk8f5f6t`
-* **Monero (XMR):** `44KXbQ47GskEsy12FVRKPEEaBpBeNWMJ4CoTU3No8tB96wrLyWBgz4hTVriiw1mtK3gF7Tazn3K3nJnufZrQPfiKHd1h5vj`
+* **Bitcoin (BTC):** `bc1q54wefvl4gaajghyk7amfnfjjs2p7velhd7t7ue`
+* **Solano (SOL):** `Cf1jXgBqJFVtnkbtPnEpGLpTrHzAgZv3dr1w59RCHS5C`
 * **Institutional Support:** [Sponsor us on GitHub](https://github.com/sponsors/jbgoldco-ops)
 
 ### ✨ Community Sparks (Dreamers)
-* [Buy the Hive a Coffee](https://www.buymeacoffee.com/YOUR_USERNAME)
+* [Buy the Hive a Coffee](https://www.buymeacoffee.com/AesopGold)
