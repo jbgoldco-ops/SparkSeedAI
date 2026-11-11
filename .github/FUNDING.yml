@@ -1,6 +1,7 @@
 github: [jbgoldco-ops]
 custom: [
   "https://www.buymeacoffee.com/JbGoldspar8",
-  "bitcoin:bc1qnp06qlcxeele8268dm9henwm00q9dwnk8f5f6t",
-  "monero:44KXbQ47GskEsy12FVRKPEEaBpBeNWMJ4CoTU3No8tB96wrLyWBgz4hTVriiw1mtK3gF7Tazn3K3nJnufZrQPfiKHd1h5vj"
+  "bitcoin:bc1q54wefvl4gaajghyk7amfnfjjs2p7velhd7t7ue",
+  "solano:0x2e7B6dD30e5458A14c4d7d29Df85A18d36Dc081d",
+  "ethereum:0x2e7B6dD30e5458A14c4d7d29Df85A18d36Dc081d"
 ]
