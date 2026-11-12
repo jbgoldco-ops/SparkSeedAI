@@ -1,171 +1,154 @@
-require('dotenv').config(); 
-
-//#!/usr/bin/env node
+#!/usr/bin/env node
 
 /**
  * Hive Pulse Check
- * Monitors the health and status of the Hive system
- * Includes fallback endpoints and improved error handling
+ * Checks public Hive RPC nodes with a read-only JSON-RPC request.
  */
 
 const https = require('https');
 
-// Configuration
-const HIVE_SAFE_KEY = process.env.HIVE_SAFE_KEY || '';
-
-// Primary and fallback Hive RPC endpoints
-// See: https://developers.hive.io/
+// Public Hive RPC endpoints. Use POST JSON-RPC rather than GETting the node URL;
+// RPC nodes commonly return 404 for a browser-style GET at the root path.
 const PULSE_ENDPOINTS = [
-  'https://api.hive.blog/api/v1/',
-  'https://rpc.hive.blog/',
-  'https://anyx.io/', // Fallback RPC endpoint
-  'https://api.hivekings.com/', // Fallback API endpoint
+  'https://api.hive.blog',
+  'https://api.openhive.network',
+  'https://rpc.ecency.com',
+  'https://hived.privex.io',
 ];
 
-const TIMEOUT = 10000; // 10 seconds
+const TIMEOUT = 10000;
 const RETRIES = 2;
-const MIN_HEALTHY_ENDPOINTS = 1; // Minimum healthy endpoints required for non-critical status
+const MIN_HEALTHY_ENDPOINTS = 1;
+const RPC_REQUEST = JSON.stringify({
+  jsonrpc: '2.0',
+  method: 'condenser_api.get_dynamic_global_properties',
+  params: [],
+  id: 1,
+});
 
-/**
- * Make HTTPS request to check endpoint health
- */
-function checkEndpoint(url, retries = RETRIES) {
+function requestEndpoint(url) {
   return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => {
-      reject(new Error(`Timeout after ${TIMEOUT}ms`));
-    }, TIMEOUT);
+    const request = https.request(
+      url,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          'Content-Length': Buffer.byteLength(RPC_REQUEST),
+        },
+        timeout: TIMEOUT,
+      },
+      (response) => {
+        let body = '';
+        response.setEncoding('utf8');
+        response.on('data', (chunk) => {
+          body += chunk;
+        });
+        response.on('end', () => {
+          if (response.statusCode < 200 || response.statusCode >= 300) {
+            reject(new Error(`HTTP ${response.statusCode}`));
+            return;
+          }
 
-    https
-      .get(url, { timeout: TIMEOUT }, (res) => {
-        clearTimeout(timer);
-        
-        if (res.statusCode >= 200 && res.statusCode < 300) {
+          let payload;
+          try {
+            payload = JSON.parse(body);
+          } catch {
+            reject(new Error('Invalid JSON response'));
+            return;
+          }
+
+          if (payload.error) {
+            reject(new Error(`JSON-RPC error: ${JSON.stringify(payload.error)}`));
+            return;
+          }
+
+          const headBlockNumber = payload.result?.head_block_number;
+          if (!Number.isSafeInteger(headBlockNumber) || headBlockNumber <= 0) {
+            reject(new Error('JSON-RPC response is missing a valid head_block_number'));
+            return;
+          }
+
           resolve({
             url,
             status: 'healthy',
-            statusCode: res.statusCode,
+            statusCode: response.statusCode,
+            headBlockNumber,
           });
-        } else if (res.statusCode >= 400) {
-          reject(new Error(`HTTP ${res.statusCode}`));
-        } else {
-          resolve({
-            url,
-            status: 'warning',
-            statusCode: res.statusCode,
-          });
-        }
-      })
-      .on('error', (err) => {
-        clearTimeout(timer);
-        if (retries > 0) {
-          console.warn(`⚠️  Retry ${RETRIES - retries + 1} for ${url}:`, err.message);
-          checkEndpoint(url, retries - 1)
-            .then(resolve)
-            .catch(reject);
-        } else {
-          reject(err);
-        }
-      });
+        });
+      },
+    );
+
+    request.on('timeout', () => {
+      request.destroy(new Error(`Timeout after ${TIMEOUT}ms`));
+    });
+    request.on('error', reject);
+    request.end(RPC_REQUEST);
   });
 }
 
-/**
- * Check Hive Safe Key validity
- */
-function validateSafeKey() {
-  if (!HIVE_SAFE_KEY) {
-    console.warn('⚠️  Warning: HIVE_SAFE_KEY not set in environment');
-    return false;
+async function checkEndpoint(url, retries = RETRIES) {
+  try {
+    return await requestEndpoint(url);
+  } catch (error) {
+    if (retries > 0) {
+      console.warn(`⚠️  Retrying ${url} (${RETRIES - retries + 1}/${RETRIES}): ${error.message}`);
+      return checkEndpoint(url, retries - 1);
+    }
+    throw error;
   }
-
-  // Basic validation - key should be at least 32 characters
-  if (HIVE_SAFE_KEY.length < 32) {
-    console.error('❌ Error: HIVE_SAFE_KEY is too short');
-    return false;
-  }
-
-  console.log('✅ HIVE_SAFE_KEY is valid');
-  return true;
 }
 
-/**
- * Main pulse check function
- */
 async function runPulseCheck() {
   console.log('🔄 Starting Hive Pulse Check...\n');
-  
+
+  const checks = await Promise.all(
+    PULSE_ENDPOINTS.map(async (url) => {
+      try {
+        const result = await checkEndpoint(url);
+        console.log(`✅ ${url}: healthy (head block ${result.headBlockNumber})`);
+        return result;
+      } catch (error) {
+        console.error(`❌ ${url}: ${error.message}`);
+        return { url, status: 'unhealthy', error: error.message };
+      }
+    }),
+  );
+
+  const healthyCount = checks.filter((check) => check.status === 'healthy').length;
+  const overallStatus = healthyCount === PULSE_ENDPOINTS.length
+    ? 'healthy'
+    : healthyCount >= MIN_HEALTHY_ENDPOINTS
+      ? 'degraded'
+      : 'critical';
   const results = {
     timestamp: new Date().toISOString(),
-    keyValid: validateSafeKey(),
-    endpoints: [],
-    overallStatus: 'unknown',
+    endpoints: checks,
+    overallStatus,
     summary: {
       total: PULSE_ENDPOINTS.length,
-      healthy: 0,
-      unhealthy: 0,
+      healthy: healthyCount,
+      unhealthy: PULSE_ENDPOINTS.length - healthyCount,
     },
   };
 
-  let healthyCount = 0;
-  let totalCount = PULSE_ENDPOINTS.length;
-
-  // Check all endpoints
-  for (const endpoint of PULSE_ENDPOINTS) {
-    try {
-      const result = await checkEndpoint(endpoint);
-      results.endpoints.push(result);
-      console.log(`✅ ${endpoint}: ${result.status} (${result.statusCode})`);
-      
-      if (result.status === 'healthy') {
-        healthyCount++;
-        results.summary.healthy++;
-      }
-    } catch (error) {
-      results.endpoints.push({
-        url: endpoint,
-        status: 'unhealthy',
-        error: error.message,
-      });
-      results.summary.unhealthy++;
-      console.error(`❌ ${endpoint}: ${error.message}`);
-    }
-  }
-
-  // Determine overall status based on minimum healthy endpoints
-  if (healthyCount >= totalCount) {
-    results.overallStatus = 'healthy';
-  } else if (healthyCount >= MIN_HEALTHY_ENDPOINTS) {
-    results.overallStatus = 'degraded';
-  } else {
-    results.overallStatus = 'critical';
-  }
-
-  // Summary
   console.log('\n📊 Pulse Check Summary:');
-  console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
-  console.log(`Overall Status: ${results.overallStatus.toUpperCase()}`);
-  console.log(`Healthy Endpoints: ${healthyCount}/${totalCount}`);
+  console.log(`Overall Status: ${overallStatus.toUpperCase()}`);
+  console.log(`Healthy Endpoints: ${healthyCount}/${PULSE_ENDPOINTS.length}`);
   console.log(`Timestamp: ${results.timestamp}`);
-  console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
-
-  // Output JSON for logging
   console.log('\n📋 Detailed Results:');
   console.log(JSON.stringify(results, null, 2));
 
-  // Exit with appropriate code
-  if (results.overallStatus === 'healthy') {
-    console.log('\n✨ Hive Pulse Check: PASSED\n');
+  if (healthyCount >= MIN_HEALTHY_ENDPOINTS) {
+    console.log(`\n✨ Hive Pulse Check: ${overallStatus.toUpperCase()}\n`);
     process.exit(0);
-  } else if (results.overallStatus === 'degraded') {
-    console.warn(`\n⚠️  Hive Pulse Check: DEGRADED (${healthyCount}/${totalCount} endpoints healthy)\n`);
-    process.exit(0); // Don't fail on degraded - at least one endpoint is working
-  } else {
-    console.error(`\n💀 Hive Pulse Check: FAILED (${healthyCount}/${totalCount} endpoints healthy)\n`);
-    process.exit(1);
   }
+
+  console.error('\n💀 Hive Pulse Check: FAILED (no healthy RPC endpoints)\n');
+  process.exit(1);
 }
 
-// Run the pulse check
 runPulseCheck().catch((error) => {
   console.error('🔥 Pulse Check Error:', error);
   process.exit(1);
